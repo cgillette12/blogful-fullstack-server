@@ -2,7 +2,7 @@ const knex = require('knex')
 const app = require('../src/app')
 const helpers = require('./test-helpers')
 
-describe.only('Articles Endpoints', function () {
+describe('Articles Endpoints', function () {
   let db
 
   const {
@@ -40,11 +40,22 @@ describe.only('Articles Endpoints', function () {
       )
     )
 
-    describe(`Get /api/articles/:articles_id`, () => {
+    const protectedEndpoints = [
+      {
+        name: 'GET /api/articles/:article_id',
+        path: '/api/articles/1'
+      },
+      {
+        name: 'GET /api/articles/:article_id/comments',
+        path: '/api/articles/1/comments'
+      },
+    ]
+    protectedEndpoints.forEach(endpoint => {
+      describe(endpoint.name, () => {
       it(`responds with 401 'Missing basic token' when no basic token`, () => {
 
         return supertest(app)
-          .get(`/api/articles/123`)
+          .get(endpoint.path)
           .expect(401, { error: `Missing basic token` })
 
       })
@@ -52,19 +63,40 @@ describe.only('Articles Endpoints', function () {
       it(`responds 401 'Unauthorized request' when no credentials in token`, () => {
         const userNoCreds = { user_name: '', password: '' }
         return supertest(app)
-          .get(`/api/articles/123`)
+          .get(endpoint.path)
           .set('Authorization', makeAuthHeader(userNoCreds))
           .expect(401, { error: `Unauthorized request` })
+      })
+
+        it(`responds 401 'Unauthorized request' when invalid user`, () => {
+          const userInvalidCreds = { user_name: 'user-not', password: 'existy' }
+          return supertest(app)
+            .get(endpoint.path)
+            .set('Authorization', makeAuthHeader(userInvalidCreds))
+            .expect(401, { error: `Unauthorized request` })
+        })
+
+        it(`responds 401 'Unauthorized request' when invalid password`, () => {
+          const userInvalidPass = { user_name: testUsers[0].user_name, password: 'wrong' }
+          return supertest(app)
+            .get(endpoint.path)
+            .set('Authorization', makeAuthHeader(userInvalidPass))
+            .expect(401, { error: `Unauthorized request` })
+        })
       })
     })
   })
 
 
-  describe(`GET /api/articles`, () => {
+  describe.only(`GET /api/articles`, () => {
     context(`Given no articles`, () => {
+      beforeEach(() =>
+        db.into('blogful_users').insert(testUsers)
+      )
       it(`responds with 200 and an empty list`, () => {
         return supertest(app)
           .get('/api/articles')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, [])
       })
     })
@@ -90,6 +122,7 @@ describe.only('Articles Endpoints', function () {
         )
         return supertest(app)
           .get('/api/articles')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, expectedArticles)
       })
     })
@@ -112,6 +145,8 @@ describe.only('Articles Endpoints', function () {
       it('removes XSS attack content', () => {
         return supertest(app)
           .get(`/api/articles`)
+          .set('Authorization', makeAuthHeader(testUser))
+
           .expect(200)
           .expect(res => {
             expect(res.body[0].title).to.eql(expectedArticle.title)
@@ -121,11 +156,11 @@ describe.only('Articles Endpoints', function () {
     })
   })
 
-  describe.only(`GET /api/articles/:article_id`, () => {
+  describe(`GET /api/articles/:article_id`, () => {
     context(`Given no articles`, () => {
       beforeEach(() =>
-           db.into('blogful_users').insert(testUsers)
-         )
+        db.into('blogful_users').insert(testUsers)
+      )
       it(`responds with 404`, () => {
         const articleId = 123456
         return supertest(app)
@@ -185,8 +220,8 @@ describe.only('Articles Endpoints', function () {
             expect(res.body.content).to.eql(expectedArticle.content)
           })
       })
-    })
   })
+})
 
   describe(`GET /api/articles/:article_id/comments`, () => {
     context(`Given no articles`, () => {
@@ -198,7 +233,6 @@ describe.only('Articles Endpoints', function () {
         return supertest(app)
           .get(`/api/articles/${articleId}/comments`)
           .set('Authorization', makeAuthHeader(testUsers[0]))
-
           .expect(404, { error: `Article doesn't exist` })
       })
     })
@@ -223,23 +257,7 @@ describe.only('Articles Endpoints', function () {
           .get(`/api/articles/${articleId}/comments`)
           .set('Authorization', makeAuthHeader(testUsers[0]))
           .expect(200, expectedComments)
-      })
-    })
-
-    it(`responds 401 'Unauthorized request' when invalid user`, () => {
-      const userInvalidCreds = { user_name: 'user-not', password: 'existy' }
-      return supertest(app)
-        .get(`/api/articles/1`)
-        .set('Authorization', makeAuthHeader(userInvalidCreds))
-        .expect(401, { error: `Unauthorized request` })
-    })
-
-    it(`responds 401 'Unauthorized request' when invalid password`, () => {
-      const userInvalidPass = { user_name: testUsers[0].user_name, password: 'wrong' }
-      return supertest(app)
-        .get(`/api/articles/1`)
-        .set('Authorization', makeAuthHeader(userInvalidPass))
-        .expect(401, { error: `Unauthorized request` })
     })
   })
+})
 })
