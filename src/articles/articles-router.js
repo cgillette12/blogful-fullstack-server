@@ -6,7 +6,7 @@ const articlesRouter = express.Router()
 
 articlesRouter
   .route('/')
-  .all(requireAuth)
+  
   .get((req, res, next) => {
     ArticlesService.getAllArticles(req.app.get('db'))
       .then(articles => {

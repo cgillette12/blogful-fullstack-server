@@ -64,7 +64,7 @@ describe('Articles Endpoints', function () {
         const userNoCreds = { user_name: '', password: '' }
         return supertest(app)
           .get(endpoint.path)
-          .set('Authorization', makeAuthHeader(userNoCreds))
+          .set('Authorization', helpers.makeAuthHeader(userNoCreds))
           .expect(401, { error: `Unauthorized request` })
       })
 
@@ -88,7 +88,7 @@ describe('Articles Endpoints', function () {
   })
 
 
-  describe.only(`GET /api/articles`, () => {
+  describe(`GET /api/articles`, () => {
     context(`Given no articles`, () => {
       beforeEach(() =>
         db.into('blogful_users').insert(testUsers)
