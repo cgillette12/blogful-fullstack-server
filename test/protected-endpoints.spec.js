@@ -2,7 +2,7 @@ const knex = require('knex')
 const app = require('../src/app')
 const helpers = require('./test-helpers')
 
-describe.only('Protected endpoints', function () {
+describe('Protected endpoints', function () {
     let db
 
     const {
@@ -53,7 +53,7 @@ describe.only('Protected endpoints', function () {
     ]
 
     protectedEndpoints.forEach(endpoint => {
-        describe.only(endpoint.name, () => {
+        describe(endpoint.name, () => {
             it(`responds 401 'Missing bearer token' when no bearer token`, () => {
                 return endpoint.method(endpoint.path)
                     .expect(401, { error: `Missing bearer token` })
